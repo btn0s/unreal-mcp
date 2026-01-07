@@ -18,6 +18,32 @@ Control Unreal Engine through natural language using AI assistants (Cursor, Clau
 
 This project is currently **EXPERIMENTAL**. Breaking changes may occur without notice. Production use is not recommended.
 
+## 📜 About This Fork
+
+This repository is a **complete architectural reimagining** of the original Unreal MCP concept. While it began as a fork, the implementation philosophy and codebase have **completely diverged**:
+
+### Key Differences
+
+**Original Approach:**
+- Command-based architecture with discrete tool endpoints
+- Separate handlers for each operation type
+- Tightly coupled to specific Unreal operations
+
+**This Implementation (Exec-First):**
+- Single powerful `exec_editor_python` tool as the primary interface
+- Direct access to Unreal's entire Python API
+- Foundation tools built as lightweight Python snippets
+- Maximum flexibility and rapid iteration
+
+### Commit History
+
+The commit history has been **completely rewritten** to reflect the current architecture:
+- 8 logical commits telling a clear story of the implementation
+- Clean separation of concerns (C++ plugin → Python server → Tools → Documentation)
+- All outdated command-based code and deprecated tools removed
+
+The original fork remains available for **historical reference**, but this repository represents a fundamentally different approach to MCP integration with Unreal Engine.
+
 ## 🚀 Quick Start (15 minutes)
 
 ### Prerequisites
