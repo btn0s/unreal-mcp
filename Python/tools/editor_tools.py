@@ -381,4 +381,38 @@ def register_editor_tools(mcp: FastMCP):
             logger.error(f"Error getting current level info: {e}")
             return _canonical_response(None, str(e))
 
+    @mcp.tool()
+    def search_unreal_docs(
+        ctx: Context,
+        query: str
+    ) -> Dict[str, Any]:
+        """
+        Search for Unreal Engine Python API documentation.
+        
+        Returns direct links to common modules or provides search guidance for the
+        Unreal Engine Python API documentation at dev.epicgames.com.
+        
+        Args:
+            ctx: The MCP context
+            query: Search term (e.g., "EditorLevelLibrary", "blueprint", "actor")
+            
+        Returns:
+            Dict with documentation links and search suggestions
+        """
+        from unreal_mcp_server import get_unreal_connection
+        
+        try:
+            unreal = get_unreal_connection()
+            if not unreal:
+                return _canonical_response(None, "Failed to connect to Unreal Engine")
+            
+            if not query or not query.strip():
+                return _canonical_response(None, "Query parameter is required")
+            
+            snippet_filename = get_snippet_filename("search_unreal_docs")
+            return _exec_snippet(unreal, snippet_filename, {"query": query})
+        except Exception as e:
+            logger.error(f"Error searching Unreal docs: {e}")
+            return _canonical_response(None, str(e))
+
     logger.info("Foundation editor tools registered successfully (snippets via exec_editor_python)")

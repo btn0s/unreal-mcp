@@ -48,6 +48,13 @@ SNIPPET_REGISTRY = {
             "include_streaming": "bool (default: True) - Include streaming levels info"
         }
     ),
+    "search_unreal_docs": (
+        "search_unreal_docs.py",
+        "Search Unreal Engine Python API documentation",
+        {
+            "query": "str (required) - Search term (module, class, or function name)"
+        }
+    ),
 }
 
 
