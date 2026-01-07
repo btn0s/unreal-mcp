@@ -1,0 +1,16 @@
+{
+  "name": "unreal-mcp",
+  "version": "1.0.0",
+  "description": "Model Context Protocol for Unreal Engine",
+  "scripts": {
+    "build-plugin": "pnpx tsx scripts/build-plugin.ts",
+    "install-plugin": "pnpx tsx scripts/install-plugin.ts",
+    "mcp-deeplink": "pnpx tsx scripts/generate-mcp-deeplink.ts",
+    "dev": "python Python/unreal_mcp_server.py",
+    "start": "python Python/unreal_mcp_server.py"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
+
