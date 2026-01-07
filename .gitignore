@@ -50,6 +50,8 @@ Content/StarterContent/
 *.sln.docstates
 *.VC.db
 *.VC.opendb
+*.sln
+*.vsconfig
 
 # Visual Studio Code files
 .vscode/
