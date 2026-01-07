@@ -301,127 +301,160 @@ def info():
     
     ## ⚠️ SECURITY WARNING
     
-    **CRITICAL:** The `exec_editor_python` tool executes arbitrary Python code with **full editor privileges**. Only use with trusted MCP clients. The Python code has complete access to your Unreal project and can modify or delete assets.
+    **CRITICAL:** The `exec_editor_python` tool executes arbitrary Python code with **full editor privileges**. 
+    Only use with trusted MCP clients in local development environments. Never expose to untrusted networks.
+    
+    ## Available Tools
+    
+    ### Primary Tool: exec_editor_python
+    **Use this for 95% of operations.** Direct access to the full Unreal Python API.
+    
+    ### Foundation Tools (Convenience Wrappers)
+    - `get_selected_actors()` - Get currently selected actors
+    - `set_selected_actors(actor_names)` - Set selection by actor names
+    - `clear_selection()` - Clear editor selection
+    - `focus_viewport(target, location, distance, orientation)` - Focus camera on actor/location
+    - `take_screenshot(filepath)` - Capture viewport screenshot
+    - `get_current_level_info(include_streaming)` - Query level details
+    - `search_unreal_docs(query)` - Find Unreal Python API documentation
     
     ## Recommended Workflow: Ask → Research → Execute → Verify
     
-    The Unreal MCP server follows an **exec-first** philosophy. For maximum flexibility and power, use `exec_editor_python` as your primary tool, following this loop:
+    1. **Ask**: Understand what the user wants
+    2. **Research**: Query current state (actors, selection, level info)
+    3. **Execute**: Make changes in transactions
+    4. **Verify**: Confirm results
     
-    1. **Ask**: Understand what the user wants to accomplish
-    2. **Research**: Use read-only Python queries to inspect the current state (actors, assets, selection, level info)
-    3. **Execute**: Perform edits wrapped in transactions, with idempotent operations where possible
-    4. **Verify**: Re-query state and optionally capture screenshots to confirm results
+    ## Using exec_editor_python
     
-    ## Primary Tool: exec_editor_python
+    ### Basic Pattern
+    ```python
+    import unreal
+    import json
     
-    **Use this tool for 95% of Unreal operations.** It provides direct access to the full Unreal Python API (`unreal.EditorLevelLibrary`, `unreal.EditorAssetLibrary`, etc.).
+    # Your code here
     
-    ### Exec Tool Contract
+    # Always end with JSON output
+    print(json.dumps({"status": "success", "result": {...}}))
+    ```
     
-    When using `exec_editor_python`, follow these conventions:
-    
-    - **Transactions**: Wrap all edits in `unreal.ScopedEditorTransaction("description")` for undo/redo support
-    - **Idempotency**: Design operations to be safe when run multiple times (check existence before creating)
-    - **Asset Path Validation**: Always validate asset paths before operations (use `/Game/` prefix for project assets)
-    - **Structured Output**: Always end your Python code by printing a final JSON object:
-      ```python
-      import json
-      result = {"status": "success", "result": {...}}  # or {"status": "error", "error": "message"}
-      print(json.dumps(result))
-      ```
-    
-    ### Example Workflow
-    
+    ### Example: Spawn Actor with Research & Verify
     ```python
     import unreal
     import json
     
     # RESEARCH: Check current state
-    actors = unreal.EditorLevelLibrary.get_all_level_actors()
-    actor_count = len(actors)
+    actors_before = len(unreal.EditorLevelLibrary.get_all_level_actors())
     
-    # EXECUTE: Make changes in a transaction
-    with unreal.ScopedEditorTransaction("Add test actor"):
-        if actor_count < 10:  # Idempotent check
-            location = unreal.Vector(0, 0, 100)
-            actor = unreal.EditorLevelLibrary.spawn_actor_from_class(
-                unreal.StaticMeshActor, location
-            )
-            actor.set_actor_label("TestActor")
+    # EXECUTE: Wrapped in transaction for undo/redo
+    with unreal.ScopedEditorTransaction("Spawn test cube"):
+        # Create Vector using explicit properties (safer than constructor)
+        loc = unreal.Vector()
+        loc.x = 0.0
+        loc.y = 0.0
+        loc.z = 100.0
+        
+        actor = unreal.EditorLevelLibrary.spawn_actor_from_class(
+            unreal.StaticMeshActor, loc
+        )
+        actor.set_actor_label("TestCube")
+        
+        # Set mesh
+        mesh_comp = actor.get_component_by_class(unreal.StaticMeshComponent)
+        if mesh_comp:
+            cube = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Cube")
+            if cube:
+                mesh_comp.set_static_mesh(cube)
     
     # VERIFY: Confirm results
-    new_actors = unreal.EditorLevelLibrary.get_all_level_actors()
-    result = {
+    actors_after = len(unreal.EditorLevelLibrary.get_all_level_actors())
+    
+    print(json.dumps({
         "status": "success",
         "result": {
-            "actors_before": actor_count,
-            "actors_after": len(new_actors),
-            "created": actor_count < 10
+            "actors_before": actors_before,
+            "actors_after": actors_after,
+            "actor_label": "TestCube"
         }
-    }
-    print(json.dumps(result))
+    }))
     ```
     
-    ## Specialized Tools (Use When Needed)
+    ## Critical: Vector and Rotator Creation
     
-    These tools provide convenience wrappers for common operations. Use them when:
-    - You need guaranteed parameter validation
-    - You want explicit tool schemas for better client-side autocomplete
-    - The operation is frequently repeated and benefits from a dedicated wrapper
+    ⚠️ **Unreal Python API Quirk:** Positional arguments in Vector/Rotator constructors get scrambled!
     
-    ### Editor Tools
-    - `get_actors_in_level()` - List all actors in current level
-    - `find_actors_by_name(pattern)` - Find actors by name pattern
-    - `spawn_actor(name, type, location=[0,0,0], rotation=[0,0,0])` - Create actors
-    - `delete_actor(name)` - Remove actors
-    - `set_actor_transform(name, location, rotation, scale)` - Modify actor transform
-    - `get_actor_properties(name)` - Get actor properties
-    - `create_level(level_name, folder, template_level, open_after_create)` - Create new level
-    - `open_level(level, save_dirty)` - Open a level
-    - `save_current_level()` - Save current level
-    - `get_current_level_info(include_streaming)` - Get level information
+    ### WRONG (values get scrambled):
+    ```python
+    vec = unreal.Vector(100, 200, 300)  # DON'T DO THIS
+    rot = unreal.Rotator(45, 90, 0)     # DON'T DO THIS
+    ```
     
-    ### Blueprint Tools
-    - `create_blueprint(name, parent_class)` - Create new Blueprint classes
-    - `add_component_to_blueprint(blueprint_name, component_type, component_name, ...)` - Add components
-    - `compile_blueprint(blueprint_name)` - Compile Blueprint changes
-    - `spawn_blueprint_actor(blueprint_name, actor_name, location, rotation)` - Spawn Blueprint actors
+    ### CORRECT (explicit properties):
+    ```python
+    vec = unreal.Vector()
+    vec.x = 100.0
+    vec.y = 200.0
+    vec.z = 300.0
     
-    ### UMG Widget Tools
-    - `create_umg_widget_blueprint(widget_name, parent_class, path)` - Create Widget Blueprint
-    - `add_text_block_to_widget(widget_name, text_block_name, ...)` - Add Text Block
-    - `add_button_to_widget(widget_name, button_name, ...)` - Add Button
-    - `bind_widget_event(widget_name, widget_component_name, event_name, function_name)` - Bind events
+    rot = unreal.Rotator()
+    rot.pitch = 45.0
+    rot.yaw = 90.0
+    rot.roll = 0.0
+    ```
     
     ## Best Practices
     
-    ### Research Phase
-    - Always query current state before making changes
-    - Use `unreal.EditorLevelLibrary.get_selected_level_actors()` to check selection
-    - Use `unreal.EditorAssetLibrary.does_asset_exist(path)` before asset operations
-    - Use `unreal.EditorLevelLibrary.get_all_level_actors()` to enumerate actors
+    ### Transactions
+    - Wrap ALL edits in `unreal.ScopedEditorTransaction("description")`
+    - Use clear descriptions for undo/redo clarity
     
-    ### Execute Phase
-    - Wrap all edits in `unreal.ScopedEditorTransaction("description")`
-    - Make operations idempotent (check before create, validate before modify)
-    - Use descriptive transaction names for undo/redo clarity
-    - Validate asset paths (project assets use `/Game/` prefix)
+    ### Idempotency
+    - Check existence before creating
+    - Design operations to be safe when run multiple times
     
-    ### Verify Phase
-    - Re-query state after operations to confirm changes
-    - Print structured JSON results for client parsing
-    - Consider taking screenshots for visual verification (if `take_screenshot` tool available)
+    ### Asset Paths
+    - Project assets use `/Game/` prefix
+    - Engine assets use `/Engine/` prefix
+    - Validate with `unreal.EditorAssetLibrary.does_asset_exist(path)`
     
     ### Error Handling
-    - Use try/except blocks in Python code
-    - Always return structured JSON even on errors: `{"status": "error", "error": "message"}`
-    - Validate inputs before operations (actor existence, asset paths, etc.)
+    ```python
+    try:
+        # Your code
+        result = {"status": "success", "result": {...}}
+    except Exception as e:
+        result = {"status": "error", "error": str(e)}
+    
+    print(json.dumps(result))
+    ```
+    
+    ### Common Operations
+    
+    **Get all actors:**
+    ```python
+    actors = unreal.EditorLevelLibrary.get_all_level_actors()
+    ```
+    
+    **Get selected actors:**
+    ```python
+    selected = unreal.EditorLevelLibrary.get_selected_level_actors()
+    ```
+    
+    **Load asset:**
+    ```python
+    asset = unreal.EditorAssetLibrary.load_asset("/Game/MyAsset")
+    ```
+    
+    **Check asset exists:**
+    ```python
+    exists = unreal.EditorAssetLibrary.does_asset_exist("/Game/MyAsset")
+    ```
     
     ## Documentation
     
-    For detailed examples and snippet format guidelines, see:
-    - Python/tools/snippets/README.md
-    - Python/tools/editor_tools.py
+    - Unreal Python API: https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api
+    - Use `search_unreal_docs(query="...")` to find specific module docs
+    - Examples: Python/scripts/editor/*.py
     """
 
 # Run the server
