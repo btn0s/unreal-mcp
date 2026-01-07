@@ -3,6 +3,27 @@ Shared helper functions for Unreal MCP snippets.
 
 This module provides common utilities that snippets can use.
 Import this in snippets via: `from snippets._lib import ...`
+
+IMPORTANT: Unreal Python API Quirk
+----------------------------------
+When creating Unreal structs like Vector and Rotator, positional arguments
+in constructors can get scrambled. Always create empty structs and set
+properties explicitly:
+
+WRONG (values get scrambled):
+    rot = unreal.Rotator(pitch, yaw, roll)
+    vec = unreal.Vector(x, y, z)
+
+CORRECT (safe):
+    rot = unreal.Rotator()
+    rot.pitch = pitch
+    rot.yaw = yaw
+    rot.roll = roll
+    
+    vec = unreal.Vector()
+    vec.x = x
+    vec.y = y
+    vec.z = z
 """
 
 import unreal

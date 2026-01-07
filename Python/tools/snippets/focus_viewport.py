@@ -19,7 +19,11 @@ try:
             print(json.dumps({"status": "error", "error": f"Actor '{target}' not found"}))
             raise SystemExit(0)
     elif isinstance(location, list) and len(location) == 3:
-        focus_location = unreal.Vector(float(location[0]), float(location[1]), float(location[2]))
+        # Create Vector and set properties explicitly for safety
+        focus_location = unreal.Vector()
+        focus_location.x = float(location[0])
+        focus_location.y = float(location[1])
+        focus_location.z = float(location[2])
     else:
         print(json.dumps({"status": "error", "error": "Either 'target' or 'location' must be provided"}))
         raise SystemExit(0)
@@ -35,11 +39,19 @@ try:
         raise SystemExit(0)
 
     # Basic framing: offset along +X
-    view_location = focus_location + unreal.Vector(distance, 0.0, 0.0)
+    offset = unreal.Vector()
+    offset.x = distance
+    offset.y = 0.0
+    offset.z = 0.0
+    view_location = focus_location + offset
     viewport_client.set_view_location(view_location)
 
     if isinstance(orientation, list) and len(orientation) == 3:
-        rot = unreal.Rotator(float(orientation[0]), float(orientation[1]), float(orientation[2]))
+        # Create Rotator and set properties explicitly to avoid scrambled values
+        rot = unreal.Rotator()
+        rot.pitch = float(orientation[0])
+        rot.yaw = float(orientation[1])
+        rot.roll = float(orientation[2])
         viewport_client.set_view_rotation(rot)
 
     print(
