@@ -18,6 +18,17 @@ Control Unreal Engine through natural language using AI assistants (Cursor, Clau
 
 This project is currently **EXPERIMENTAL**. Breaking changes may occur without notice. Production use is not recommended.
 
+### Security Warning
+
+⚠️ **This tool executes arbitrary Python code with full Unreal Editor privileges.**
+
+- **Local use only**: Never expose the MCP server or Unreal plugin to untrusted networks
+- **Trusted code only**: Review AI-generated code before execution when possible
+- **No sandboxing**: The `exec_editor_python` command has complete access to your project and file system
+- **Development only**: This is intended for local development workflows, not production environments
+
+**Use at your own risk.** Only use this tool with trusted AI assistants and in controlled development environments.
+
 ## 📜 About This Fork
 
 This repository is a **complete architectural reimagining** of the original Unreal MCP concept. While it began as a fork, the implementation philosophy and codebase have **completely diverged**:
