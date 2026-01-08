@@ -8,7 +8,7 @@ try:
     if not world:
         print(json.dumps({"status": "error", "error": "Failed to get editor world"}))
     else:
-        level = world.get_current_level()
+        level = world.get_persistent_level()
 
         level_info = {
             "persistent_level_path": level.get_path_name(),
